@@ -1,0 +1,32 @@
+name:                mapview-noexc
+version:             0.1.0.0
+synopsis:            Non-stdlib callbacks and types for mapview that are useful for working specifically with NOEXC flights.
+-- description:
+homepage:            https://mapview.noexc.org/
+license:             MIT
+license-file:        LICENSE
+author:              Ricky Elrod
+maintainer:          ricky@elrod.me
+-- copyright:
+category:            KD8ZRC
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >= 1.10
+
+library
+  exposed-modules:
+    KD8ZRC.Flight.NBP3
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base >= 4 && < 5
+                     , bytestring >= 0.10
+                     , coordinate >= 0.0.15 && < 0.1
+                     , crc16 >= 0.1 && < 0.2
+                     , lens >= 4.4 && < 5
+                     , old-locale >= 1.0
+                     , text >= 1.1
+                     , thyme >= 0.3.5 && < 0.4
+                     , trifecta >= 1.4.3 && < 2
+                     , mapview
+  hs-source-dirs:      src
+  default-language:    Haskell2010
