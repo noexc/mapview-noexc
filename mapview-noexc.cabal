@@ -15,7 +15,10 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:
-    KD8ZRC.Flight.NBP3
+      KD8ZRC.Flight.NBP3
+    , KD8ZRC.Flight.NBP3.CRC
+    , KD8ZRC.Flight.NBP3.Parser
+    , KD8ZRC.Flight.NBP3.Types
   -- other-modules:
   -- other-extensions:
   build-depends:       base >= 4 && < 5
