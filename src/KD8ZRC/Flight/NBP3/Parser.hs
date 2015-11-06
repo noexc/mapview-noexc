@@ -1,18 +1,12 @@
 -- | Parser module for NBP3
 module KD8ZRC.Flight.NBP3.Parser where
 
-import Control.Lens
-import qualified Data.ByteString as BR
-import qualified Data.ByteString.Char8 as BRC
 import Data.Char (digitToInt)
 import Data.Geo.Coordinate
 import Data.List (foldl')
 import qualified Data.Text as T
-import Data.Thyme.Clock
 import Data.Thyme.Format
 import KD8ZRC.Flight.NBP3.Types
-import KD8ZRC.Mapview.Types
-import KD8ZRC.Mapview.Utility.CRC
 import Text.Trifecta
 import System.Locale
 

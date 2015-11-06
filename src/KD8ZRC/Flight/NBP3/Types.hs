@@ -11,7 +11,6 @@ import Data.List (dropWhileEnd)
 import qualified Data.Text as T
 import Data.Thyme.Clock
 import KD8ZRC.Flight.NBP3.CRC
-import KD8ZRC.Mapview.Types
 import KD8ZRC.Mapview.Utility.CRC
 
 type Meters = Double -- TODO
