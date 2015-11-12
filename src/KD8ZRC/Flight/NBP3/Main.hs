@@ -14,8 +14,12 @@ import KD8ZRC.Mapview.Utility.Logging
 mvConfig :: MapviewConfig TelemetryLine
 mvConfig = MapviewConfig {
     _mvParser = parser
-  , _mvDownlinkSpawn = modemStdout "minimodem" ["-r", "-q", "rtty", "-S", "700", "-M", "870"]
-  , _mvPacketLineCallback = [logRawPacketStdout]
+  , _mvDownlinkSpawn =
+      modemStdout "minimodem" ["-r", "-q", "rtty", "-S", "700", "-M", "870"]
+  , _mvPacketLineCallback =
+      [ logRawPacketFile "/tmp/nbp3.log"
+      , logRawPacketStdout
+      ]
 }
 
 main :: IO ()
