@@ -14,7 +14,7 @@ import System.Locale
 -- work with any supported parser combinator library.
 --
 -- See <https://noexc.org/wiki/NBP/RTTY_Telemetry_Format_v2> for more details.
-parser :: (Monad m, DeltaParsing m) => m TelemetryLine
+parser :: (Monad m, DeltaParsing m, Errable m) => m TelemetryLine
 parser = do
   _ <- colon
   callsign' <- manyTill anyChar (try colon)
@@ -31,16 +31,17 @@ parser = do
   --crc16C <- crcHaskell . dropWhileEnd (/= ':') . init . tail . BRC.unpack <$> line
   raw <- line
 
-  -- TODO: Fix partiality. Anything raised here will be caught by Trifecta,
-  -- though, so it's not urgent. We won't ever hit _|_. It's just ugly.
-  let Just coordinate = lat' <°> lon'
-  return $ TelemetryLine
-    raw
-    (T.pack callsign')
-    coordinate
-    altitude'
-    (readTime defaultTimeLocale "%H%M%S" time')
-    crc16T
+  case lat' <°> lon' of
+    Nothing ->
+      raiseErr $ failed "Unable to produce a Coordinate from the given lat/lon pair."
+    Just coordinate ->
+      return $ TelemetryLine
+        raw
+        (T.pack callsign')
+        coordinate
+        altitude'
+        (readTime defaultTimeLocale "%H%M%S" time')
+        crc16T
   where
     number base baseDigit =
       foldl' (\x d -> base * x + toInteger (digitToInt d)) 0 <$> some baseDigit
