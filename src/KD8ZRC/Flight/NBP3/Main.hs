@@ -6,6 +6,7 @@ module Main where
 
 import KD8ZRC.Flight.NBP3.Parser
 import KD8ZRC.Flight.NBP3.Types
+import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
@@ -18,4 +19,4 @@ mvConfig = MapviewConfig {
 }
 
 main :: IO ()
-main = error "Go NBP3!"
+main = mapview mvConfig
