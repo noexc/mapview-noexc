@@ -9,7 +9,7 @@ import qualified Data.ByteString.Char8 as BRC
 import Data.Geo.Coordinate
 import Data.List (dropWhileEnd)
 import qualified Data.Text as T
-import Data.Thyme.Clock
+import Data.Thyme
 import KD8ZRC.Flight.NBP3.CRC
 import KD8ZRC.Mapview.Utility.CRC
 
@@ -25,7 +25,7 @@ data TelemetryLine = TelemetryLine {
   , _altitude    :: Meters
   , _time        :: UTCTime
   , _crc         :: Integer
-  } deriving (Eq)
+  } deriving (Eq, Show)
 makeLenses ''TelemetryLine
 
 instance HasCRC TelemetryLine Integer where

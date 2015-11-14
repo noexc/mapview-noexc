@@ -20,6 +20,7 @@ mvConfig = MapviewConfig {
       [ logRawPacketFile "/tmp/nbp3.log"
       , logRawPacketStdout
       ]
+  , _mvParsedPacketCallback = logParsedPacketStdout
 }
 
 main :: IO ()
