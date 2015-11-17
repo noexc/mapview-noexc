@@ -12,6 +12,7 @@ import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
+import KD8ZRC.Mapview.Utility.Websocket
 
 -- | A simple example to show how a logger thread might work.
 data Logger = Logger (MVar String)
@@ -32,20 +33,20 @@ logVia v = do
 logPacket :: Logger -> PacketLineCallback t
 logPacket (Logger m) = PacketLineCallback (liftIO . putMVar m)
 
-mvConfig :: Logger -> MapviewConfig TelemetryLine
-mvConfig logger = MapviewConfig {
+mvConfig :: WebsocketServer -> MapviewConfig TelemetryLine
+mvConfig _ws = MapviewConfig {
     _mvParser = parser
   , _mvDownlinkSpawn =
       modemStdout "minimodem" ["-r", "-q", "rtty", "-S", "700", "-M", "870"]
   , _mvPacketLineCallback =
       [ logRawPacketFile "/tmp/nbp3.log"
       , logRawPacketStdout
-      , logPacket logger
+      , broadcastRaw _ws
       ]
   , _mvParsedPacketCallback = logParsedPacketStdout
 }
 
 main :: IO ()
 main = do
-  logger <- initLogger
-  mapview (mvConfig logger)
+  ws <- initWebsocketServer "127.0.0.1" 8181
+  mapview (mvConfig ws)
