@@ -10,6 +10,10 @@ import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.IO.Class
+import System.IO
 
 mvConfig :: MapviewConfig TelemetryLine
 mvConfig = MapviewConfig {
@@ -21,7 +25,16 @@ mvConfig = MapviewConfig {
       , logRawPacketStdout
       ]
   , _mvParsedPacketCallback = logParsedPacketStdout
+  , _mvForkProcesses = [test]
 }
+
+test :: MapviewProcess t
+test = MapviewProcess $ do
+  liftIO $ do
+    hSetBuffering stdout NoBuffering
+    forever $ do
+      putStrLn "ping!"
+      threadDelay 10000000
 
 main :: IO ()
 main = mapview mvConfig
