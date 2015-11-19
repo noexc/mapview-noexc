@@ -14,25 +14,6 @@ import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
 
--- | A simple example to show how a logger thread might work.
-data Logger = Logger (MVar String)
-
-initLogger :: IO Logger
-initLogger = do
-  m <- newEmptyMVar
-  let l = Logger m
-  _ <- forkIO (logVia m)
-  return l
-
-logVia :: MVar String -> IO ()
-logVia v = do
-  str <- takeMVar v
-  putStrLn $ "Printed from another thread: " ++ str
-  logVia v
-
-logPacket :: Logger -> PacketLineCallback t
-logPacket (Logger m) = PacketLineCallback (liftIO . putMVar m)
-
 mvConfig :: WebsocketServer -> MapviewConfig TelemetryLine
 mvConfig _ws = MapviewConfig {
     _mvParser = parser
