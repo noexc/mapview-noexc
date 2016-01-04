@@ -8,7 +8,8 @@ import Data.Word
 import KD8ZRC.Mapview.Utility.CRC
 
 crcHaskellF :: Word16 -> Bool -> Word16 -> [Word8] -> Word16
-crcHaskellF poly inverse initial = BR.foldl (crc16Update poly inverse) initial . BR.pack
+crcHaskellF poly inverse initial =
+  BR.foldl (crc16Update poly inverse) initial . BR.pack
 
 crcHaskell :: String -> CalculatedCRC Integer
 crcHaskell s =
