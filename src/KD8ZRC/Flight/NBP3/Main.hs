@@ -6,13 +6,17 @@ module Main where
 
 import Control.Concurrent
 import qualified Control.Concurrent.Chan as Chan
+import Control.Monad.IO.Class
+import Data.Aeson (ToJSON, encode)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
 
 import KD8ZRC.Flight.NBP3.Parser
 import KD8ZRC.Flight.NBP3.Types
 import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
-import KD8ZRC.Mapview.Utility.Concurrent
+--import KD8ZRC.Mapview.Utility.Concurrent
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
@@ -25,10 +29,17 @@ mvConfig _ch = MapviewConfig {
   , _mvPacketLineCallback =
       [ logRawPacketFile "/tmp/nbp3.log"
       , logRawPacketStdout
-      , writeChanRaw _ch
+      --, writeChanRaw _ch
       ]
-  , _mvParsedPacketCallback = logParsedPacketStdout
+  , _mvParsedPacketCallback =
+      [ writeChanPkt _ch
+      ] ++ logParsedPacketStdout
 }
+
+writeChanPkt :: ToJSON t => Chan.Chan T.Text -> ParsedPacketCallback t
+writeChanPkt ch =
+  ParseSuccessCallback (
+    \pkt -> liftIO $ Chan.writeChan ch (TL.toStrict . TL.decodeUtf8 . encode $ pkt))
 
 main :: IO ()
 main = do
