@@ -48,8 +48,11 @@ instance ToJSON TelemetryLine where
   -- example, you could, in theory, do something like use 'decodeUtf8' from
   -- 'Data.Text.Encoding' if you were sure the line never contained binary data.
     toJSON TelemetryLine{..} =
-        object [ "coordinates" .= show _coordinates -- TODO: Horribad.
+        object [ "coordinates" .= coordinatesTuple
                , "altitude"    .= _altitude
                , "time"        .= _time
                , "crc"         .= _crc
                ]
+      where
+        coordinatesTuple =
+          _Coordinate  # (_coordinates ^. _Coordinate) :: (Double, Double)
