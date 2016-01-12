@@ -8,9 +8,8 @@ import Control.Concurrent
 import qualified Control.Concurrent.Chan as Chan
 import Control.Monad.IO.Class
 import Data.Aeson (ToJSON, encode)
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as BSL
 
 import KD8ZRC.Flight.NBP3.Parser
 import KD8ZRC.Flight.NBP3.Types
@@ -21,7 +20,7 @@ import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
 
-mvConfig :: Chan.Chan T.Text -> MapviewConfig TelemetryLine
+mvConfig :: Chan.Chan BS.ByteString -> MapviewConfig TelemetryLine
 mvConfig _ch = MapviewConfig {
     _mvParser = parser
   , _mvDownlinkSpawn =
@@ -36,10 +35,10 @@ mvConfig _ch = MapviewConfig {
       ] ++ logParsedPacketStdout
 }
 
-writeChanPkt :: ToJSON t => Chan.Chan T.Text -> ParsedPacketCallback t
+writeChanPkt :: ToJSON t => Chan.Chan BS.ByteString -> ParsedPacketCallback t
 writeChanPkt ch =
   ParseSuccessCallback (
-    \pkt -> liftIO $ Chan.writeChan ch (TL.toStrict . TL.decodeUtf8 . encode $ pkt))
+    \pkt -> liftIO $ Chan.writeChan ch (BSL.toStrict . encode $ pkt))
 
 main :: IO ()
 main = do

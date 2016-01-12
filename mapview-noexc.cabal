@@ -45,6 +45,7 @@ executable nbp3
   hs-source-dirs:      src/KD8ZRC/Flight/NBP3
   build-depends:       base >= 4 && < 5
                      , aeson >= 0.9 && < 1
+                     , bytestring >= 0.10
                      , text >= 1.1
                      , transformers >= 0.3 && < 0.5
                      , mapview-noexc

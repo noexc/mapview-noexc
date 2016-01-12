@@ -38,7 +38,7 @@ instance HasCRC TelemetryLine Integer where
     crcHaskell . dropWhileEnd (/= ':') . init . tail . BRC.unpack $ _rawLine l
 
 instance ToJSON TelemetryLine where
-  -- We don't include -rawLine here for a few reasons.
+  -- We don't include _rawLine here for a few reasons.
   -- One, it's a ByteString, which could in theory contain binary data.
   -- Two, it isn't necessary for anything I wish to show in our web UI.
   -- Three, there is a callback we offer in Utility.Concurrent for sending
