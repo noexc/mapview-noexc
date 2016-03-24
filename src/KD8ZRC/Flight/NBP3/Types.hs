@@ -10,12 +10,9 @@ import Control.Lens hiding ((.=))
 import Data.Aeson
 import qualified Data.ByteString.Char8 as BRC
 import Data.Geo.Coordinate
-import Data.List (dropWhileEnd)
 import qualified Data.Text as T
 import Data.Thyme.Clock
 import Data.Thyme.Format.Aeson ()
-import KD8ZRC.Flight.NBP3.CRC
-import KD8ZRC.Mapview.Utility.CRC
 
 type Meters = Double -- TODO
 
@@ -31,11 +28,6 @@ data TelemetryLine = TelemetryLine {
   , _crc         :: Integer
   } deriving (Eq, Show)
 makeLenses ''TelemetryLine
-
-instance HasCRC TelemetryLine Integer where
-  telemetryCRC = TelemetryCRC . _crc
-  calculatedCRC l =
-    crcHaskell . dropWhileEnd (/= ':') . init . tail . BRC.unpack $ _rawLine l
 
 instance ToJSON TelemetryLine where
   -- We don't include _rawLine here for a few reasons.
