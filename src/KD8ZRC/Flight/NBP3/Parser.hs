@@ -65,4 +65,7 @@ parser = do
     eitherToNum :: (Num b, Integral a) => Either a b -> b
     eitherToNum = either fromIntegral id
 
-    rawVoltageToRealVoltage x = (x + 477) / 348
+    rawVoltageToRealVoltage x = roundToN 3 ((x + 477) / 348)
+
+    roundToN :: Integer -> Double -> Double
+    roundToN n f =  (fromInteger $ round $ f * (10^n)) / (10.0^^n)
