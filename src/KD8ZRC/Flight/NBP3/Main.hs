@@ -26,7 +26,7 @@ mvConfig :: Chan.Chan BS.ByteString -> MapviewConfig TelemetryLine
 mvConfig _ch = MapviewConfig {
     _mvParser = parser
   , _mvDownlinkSpawn =
-      modemStdout "minimodem" ["-r", "-q", "rtty", "-S", "700", "-M", "870"]
+      modemStdout "minimodem" ["-r", "-q", "-S", "700", "-M", "1050", "-5", "110"]
   , _mvPacketLineCallback =
       [ logRawPacketFile "/var/tmp/nbp3/raw.log"
       , logRawPacketStdout
