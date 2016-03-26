@@ -70,4 +70,4 @@ instance ToJSON TelemetryLine where
                , "crc"         .= _crc
                ]
       where
-        formatTimestamp = formatTime defaultTimeLocale "%F @ %T UTC"
+        formatTimestamp = formatTime defaultTimeLocale "%T UTC"
