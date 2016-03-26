@@ -29,8 +29,11 @@ parser = do
   _ <- colon
   time' <- many (token digit)
   _ <- colon
+  voltage' <- eitherToNum <$> integerOrDouble
+  _ <- colon
   crc16T <- number 16 hexDigit
   _ <- colon
+
   crc16C <- crcHaskell . dropWhileEnd (/= ':') . init . tail . BRC.unpack <$> line
   raw <- line
 
@@ -49,6 +52,7 @@ parser = do
              coordinate
              altitude'
              (readTime defaultTimeLocale "%H%M%S" time')
+             (rawVoltageToRealVoltage voltage')
              crc16T
   where
     number base baseDigit =
@@ -56,3 +60,5 @@ parser = do
 
     eitherToNum :: (Num b, Integral a) => Either a b -> b
     eitherToNum = either fromIntegral id
+
+    rawVoltageToRealVoltage x = (x + 477) / 348

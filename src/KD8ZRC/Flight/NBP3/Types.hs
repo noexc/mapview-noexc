@@ -7,12 +7,14 @@
 module KD8ZRC.Flight.NBP3.Types where
 
 import Control.Lens hiding ((.=))
+import Control.Monad (mzero)
 import Data.Aeson
 import qualified Data.ByteString.Char8 as BRC
 import Data.Geo.Coordinate
 import qualified Data.Text as T
 import Data.Thyme.Clock
-import Data.Thyme.Format.Aeson ()
+import Data.Thyme.Format
+import System.Locale (defaultTimeLocale)
 
 type Meters = Double -- TODO
 
@@ -25,9 +27,30 @@ data TelemetryLine = TelemetryLine {
   , _coordinates :: Coordinate
   , _altitude    :: Meters
   , _time        :: UTCTime
+  , _voltage     :: Double
   , _crc         :: Integer
   } deriving (Eq, Show)
 makeLenses ''TelemetryLine
+
+newtype JSONCoordinate = JSONCoordinate Coordinate
+
+instance ToJSON JSONCoordinate where
+    toJSON (JSONCoordinate coords) =
+        object [ "lat" .= fst coordinatesTuple
+               , "lon" .= snd coordinatesTuple
+               ]
+      where
+        coordinatesTuple =
+          _Coordinate  # (coords ^. _Coordinate) :: (Double, Double)
+
+instance FromJSON JSONCoordinate where
+    parseJSON (Object v) = do
+      lat <- v .: "lat"
+      lon <- v .: "lon"
+      case lat <°> lon of
+        Nothing -> fail "Failed to parse lat/lon pair from history file"
+        Just coordinate -> return $ JSONCoordinate coordinate
+    parseJSON _          = mzero
 
 instance ToJSON TelemetryLine where
   -- We don't include _rawLine here for a few reasons.
@@ -40,11 +63,11 @@ instance ToJSON TelemetryLine where
   -- example, you could, in theory, do something like use 'decodeUtf8' from
   -- 'Data.Text.Encoding' if you were sure the line never contained binary data.
     toJSON TelemetryLine{..} =
-        object [ "coordinates" .= coordinatesTuple
+        object [ "coordinates" .= JSONCoordinate _coordinates
                , "altitude"    .= _altitude
-               , "time"        .= _time
+               , "time"        .= formatTimestamp _time
+               , "voltage"     .= _voltage
                , "crc"         .= _crc
                ]
       where
-        coordinatesTuple =
-          _Coordinate  # (_coordinates ^. _Coordinate) :: (Double, Double)
+        formatTimestamp = formatTime defaultTimeLocale "%F @ %T UTC"
