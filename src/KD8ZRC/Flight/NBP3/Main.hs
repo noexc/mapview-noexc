@@ -11,6 +11,7 @@ import Control.Monad.IO.Class
 import Data.Aeson (ToJSON, encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
+import System.Directory (createDirectoryIfMissing, doesFileExist)
 
 import KD8ZRC.Flight.NBP3.History
 import KD8ZRC.Flight.NBP3.Parser
@@ -27,14 +28,12 @@ mvConfig _ch = MapviewConfig {
   , _mvDownlinkSpawn =
       modemStdout "minimodem" ["-r", "-q", "rtty", "-S", "700", "-M", "870"]
   , _mvPacketLineCallback =
-      [ logRawPacketFile "/tmp/nbp3.log"
+      [ logRawPacketFile "/var/tmp/nbp3/raw.log"
       , logRawPacketStdout
-      --, writeChanRaw _ch
       ]
   , _mvParsedPacketCallback =
       [ writeChanPkt _ch
-      , writePktHistory "/var/tmp/nbp3-history.json"
-      , writetestthing
+      , writePktHistory "/var/tmp/nbp3/history.json"
       ] ++ logParsedPacketStdout
 }
 
@@ -43,20 +42,22 @@ writeChanPkt ch =
   ParseSuccessCallback (
     \pkt -> liftIO $ Chan.writeChan ch (BSL.toStrict . encode $ pkt))
 
-writetestthing :: ToJSON t => ParsedPacketCallback t
-writetestthing =
-  ParseSuccessCallback (
-    \pkt -> liftIO $ BS.writeFile "/tmp/test" (BSL.toStrict . encode $ pkt))
-
 sendWSHistory :: WebsocketOnConnectCallback
 sendWSHistory =
   WebsocketOnConnectCallback (
     \(_, ch) -> do
-      hist <- BS.readFile "/var/tmp/nbp3-history.json"
+      hist <- BS.readFile "/var/tmp/nbp3/history.json"
       Chan.writeChan ch hist)
+
+createFileIfMissing :: FilePath -> IO ()
+createFileIfMissing fp = do
+  fileExists <- doesFileExist fp
+  if fileExists then return () else writeFile fp ""
 
 main :: IO ()
 main = do
+  createDirectoryIfMissing True "/var/tmp/nbp3"
+  createFileIfMissing "/var/tmp/nbp3/history.json"
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory]
   mapview (mvConfig rawChan)
