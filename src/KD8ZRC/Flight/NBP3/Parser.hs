@@ -1,6 +1,10 @@
+{-# LANGUAGE CPP #-}
 -- | Parser module for NBP3
 module KD8ZRC.Flight.NBP3.Parser where
 
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>))
+#endif
 import qualified Data.ByteString.Char8 as BRC
 import Data.Char (digitToInt)
 import Data.Geo.Coordinate
