@@ -22,6 +22,14 @@ import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
 
+flightId :: String
+flightId = "nbp4"
+
+cHist, fHist, rawLog :: FilePath
+cHist = "/var/tmp/" ++ flightId ++ "/history-coord.json"
+fHist = "/var/tmp/" ++ flightId ++ "/history-full.json"
+rawLog = "/var/tmp/" ++ flightId ++ "/raw.log"
+
 mvConfig :: Chan.Chan BS.ByteString -> MapviewConfig TelemetryLine
 mvConfig _ch = MapviewConfig {
     _mvParser = parser
@@ -29,27 +37,20 @@ mvConfig _ch = MapviewConfig {
       --modemStdout "minimodem" ["-r", "-q", "-S", "700", "-M", "1050", "-5", "110"]
       modemStdout "minimodem" ["-r", "rtty", "-q", "-S", "700", "-M", "870"]
   , _mvPacketLineCallback =
-      [ logRawPacketFile "/var/tmp/nbp4/raw.log"
+      [ logRawPacketFile rawLog
       , logRawPacketStdout
       ]
   , _mvParsedPacketCallback =
       [ writeChanPkt _ch
-      , writePktHistory "/var/tmp/nbp4/history-coord.json" saveCoordinateHistory
-      , writePktHistory "/var/tmp/nbp4/history-all.json" saveFullHistory
+      , writePktHistory cHist saveCoordinateHistory
+      , writePktHistory fHist saveFullHistory
       ] ++ logParsedPacketStdout
-}
+  }
 
 writeChanPkt :: ToJSON t => Chan.Chan BS.ByteString -> ParsedPacketCallback t
 writeChanPkt ch =
   ParseSuccessCallback (
     \pkt -> liftIO $ Chan.writeChan ch (BSL.toStrict . encode $ pkt))
-
-sendWSHistory :: WebsocketOnConnectCallback
-sendWSHistory =
-  WebsocketOnConnectCallback (
-    \(_, ch) -> do
-      hist <- BS.readFile "/var/tmp/nbp4/history-coord.json"
-      Chan.writeChan ch hist)
 
 -- TODO: This should move somewhere.
 createFileIfMissing :: FilePath -> IO ()
@@ -57,13 +58,16 @@ createFileIfMissing fp = do
   fileExists <- doesFileExist fp
   if fileExists then return () else writeFile fp ""
 
+createHistoryFileHierarchy :: IO ()
+createHistoryFileHierarchy = do
+  createDirectoryIfMissing True ("/var/tmp/" ++ flightId)
+  createFileIfMissing cHist
+  createFileIfMissing fHist
+
 main :: IO ()
 main = do
-  -- TODO: These 3 lines should move somewhere
-  createDirectoryIfMissing True "/var/tmp/nbp4"
-  createFileIfMissing "/var/tmp/nbp4/history-coord.json"
-  createFileIfMissing "/var/tmp/nbp4/history-all.json"
+  createHistoryFileHierarchy
   rawChan <- Chan.newChan
-  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory]
+  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   putStrLn "Welcome to Mapview for NBP4!"
   mapview (mvConfig rawChan)
