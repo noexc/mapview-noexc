@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | This is the runner program for NBP-3. It ties together things from mapview
+-- | This is the runner program for NBP4. It ties together things from mapview
 -- (the core library), helper functions from other KD8ZRC.Flight.NBP4.* modules,
 -- and so on, into one program.
 module Main where
@@ -34,7 +34,8 @@ mvConfig _ch = MapviewConfig {
       ]
   , _mvParsedPacketCallback =
       [ writeChanPkt _ch
-      , writePktHistory "/var/tmp/nbp4/history.json"
+      , writePktHistory "/var/tmp/nbp4/history-coord.json" saveCoordinateHistory
+      , writePktHistory "/var/tmp/nbp4/history-all.json" saveFullHistory
       ] ++ logParsedPacketStdout
 }
 
@@ -47,9 +48,10 @@ sendWSHistory :: WebsocketOnConnectCallback
 sendWSHistory =
   WebsocketOnConnectCallback (
     \(_, ch) -> do
-      hist <- BS.readFile "/var/tmp/nbp4/history.json"
+      hist <- BS.readFile "/var/tmp/nbp4/history-coord.json"
       Chan.writeChan ch hist)
 
+-- TODO: This should move somewhere.
 createFileIfMissing :: FilePath -> IO ()
 createFileIfMissing fp = do
   fileExists <- doesFileExist fp
@@ -57,8 +59,11 @@ createFileIfMissing fp = do
 
 main :: IO ()
 main = do
+  -- TODO: These 3 lines should move somewhere
   createDirectoryIfMissing True "/var/tmp/nbp4"
-  createFileIfMissing "/var/tmp/nbp4/history.json"
+  createFileIfMissing "/var/tmp/nbp4/history-coord.json"
+  createFileIfMissing "/var/tmp/nbp4/history-all.json"
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory]
+  putStrLn "Welcome to Mapview for NBP4!"
   mapview (mvConfig rawChan)

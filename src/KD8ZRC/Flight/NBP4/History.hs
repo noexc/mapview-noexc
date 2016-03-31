@@ -12,18 +12,35 @@ import KD8ZRC.Flight.NBP4.Types
 import KD8ZRC.Mapview.Types
 import qualified System.IO.Strict as S
 
+newtype HistorySaveCallback t = HistorySaveCallback (FilePath -> t -> IO ())
+
 -- | To store the history of a flight, we write out a simple JSON file. This is
 -- not part of the standard callback set for now, because different frontends
 -- and projects have different requirements for what needs to be saved.
-saveHistory
-  :: FilePath -- ^ The file to save history to.
-  -> TelemetryLine -- ^ The downlink packet containing the latest data
-  -> IO ()
-saveHistory fp pkt = do
+--
+-- This saves only the coordinates, not other data in the packet. This is useful
+-- for sending a history of where the balloon has been to frontends so they can
+-- generate a visual path based on the numbers, without having to waste
+-- bandwidth sending historical data that will never be used.
+saveCoordinateHistory :: HistorySaveCallback TelemetryLine
+saveCoordinateHistory = HistorySaveCallback $ \fp pkt -> do
   old <- S.readFile fp
   let history = decode (BSL.pack old) :: Maybe [JSONCoordinate]
       latestCoords = pkt ^. coordinates . to JSONCoordinate
   writeFile fp (BSL.unpack $ encode (latestCoords : fromMaybe [] history))
 
-writePktHistory :: FilePath -> ParsedPacketCallback TelemetryLine
-writePktHistory fp = ParseSuccessCallback (\pkt -> liftIO $ saveHistory fp pkt)
+-- | However, there /are/ cases where we *do* care about the other data, in a
+-- historical, machine-readable sense, such as when we want to generate graphs
+-- after a flight.
+saveFullHistory :: HistorySaveCallback TelemetryLine
+saveFullHistory = HistorySaveCallback $ \fp pkt -> do
+  old <- S.readFile fp
+  let history = decode (BSL.pack old) :: Maybe [TelemetryLine]
+  writeFile fp (BSL.unpack $ encode (pkt : fromMaybe [] history))
+
+writePktHistory
+  :: FilePath
+  -> HistorySaveCallback t
+  -> ParsedPacketCallback t
+writePktHistory fp (HistorySaveCallback f) =
+  ParseSuccessCallback (\pkt -> liftIO $ f fp pkt)
