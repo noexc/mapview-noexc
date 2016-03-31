@@ -85,6 +85,7 @@ main = do
 
 mainProd :: IO ()
 mainProd = do
+  createHistoryFileHierarchy
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   mapview (mvConfig rawChan)
