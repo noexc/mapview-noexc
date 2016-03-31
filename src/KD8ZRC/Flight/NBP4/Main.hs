@@ -12,6 +12,7 @@ import Data.Aeson (ToJSON, encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import System.Directory (createDirectoryIfMissing, doesFileExist)
+import System.Environment (getArgs)
 
 import KD8ZRC.Flight.NBP4.History
 import KD8ZRC.Flight.NBP4.Parser
@@ -47,6 +48,16 @@ mvConfig _ch = MapviewConfig {
       ] ++ logParsedPacketStdout
   }
 
+-- | Strip all callbacks except those necessary for a PRE-LAUNCH test.
+mvConfigTestMode
+  :: Chan.Chan BS.ByteString
+  -> MapviewConfig TelemetryLine
+  -> MapviewConfig TelemetryLine
+mvConfigTestMode _ch c = c { _mvPacketLineCallback = [logRawPacketStdout]
+                       , _mvParsedPacketCallback =
+                           [writeChanPkt _ch] ++ logParsedPacketStdout
+                       }
+
 writeChanPkt :: ToJSON t => Chan.Chan BS.ByteString -> ParsedPacketCallback t
 writeChanPkt ch =
   ParseSuccessCallback (
@@ -66,8 +77,25 @@ createHistoryFileHierarchy = do
 
 main :: IO ()
 main = do
-  createHistoryFileHierarchy
+  putStrLn "Welcome to Mapview for NBP4!"
+  args <- getArgs
+  if length args > 0 && head args == "TEST_MODE"
+    then mainTest
+    else mainProd
+
+mainProd :: IO ()
+mainProd = do
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
-  putStrLn "Welcome to Mapview for NBP4!"
   mapview (mvConfig rawChan)
+
+mainTest :: IO ()
+mainTest = do
+  putStrLn "!!! WARNING WARNING WARNING !!!"
+  putStrLn "Mapview is currently running in TEST MODE"
+  putStrLn "No data is being persisted!"
+  putStrLn "!!! WARNING WARNING WARNING !!!"
+  putStrLn ""
+  rawChan <- Chan.newChan
+  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
+  mapview (mvConfigTestMode rawChan $ mvConfig rawChan)
