@@ -99,4 +99,4 @@ mainTest = do
   putStrLn ""
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
-  mapview (mvConfigTestMode rawChan $ mvConfig rawChan)
+  mapview (mvConfigTestMode <*> mvConfig $ rawChan)
