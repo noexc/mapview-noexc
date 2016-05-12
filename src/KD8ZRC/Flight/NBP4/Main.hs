@@ -7,10 +7,7 @@ module Main where
 
 import Control.Concurrent
 import qualified Control.Concurrent.Chan as Chan
-import Control.Monad.IO.Class
-import Data.Aeson (ToJSON, encode)
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy.Char8 as BSL
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Environment (getArgs)
 
@@ -19,6 +16,7 @@ import KD8ZRC.Flight.NBP4.Parser
 import KD8ZRC.Flight.NBP4.Types
 import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
+import KD8ZRC.Mapview.Utility.Concurrent
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
@@ -42,7 +40,7 @@ mvConfig _ch = MapviewConfig {
       , logRawPacketStdout
       ]
   , _mvParsedPacketCallback =
-      [ writeChanPkt _ch
+      [ writeChanJsonPkt _ch
       , writePktHistory cHist saveCoordinateHistory
       , writePktHistory fHist saveFullHistory
       ] ++ logParsedPacketStdout
@@ -54,14 +52,9 @@ mvConfigTestMode
   -> MapviewConfig TelemetryLine
   -> MapviewConfig TelemetryLine
 mvConfigTestMode _ch c = c { _mvPacketLineCallback = [logRawPacketStdout]
-                       , _mvParsedPacketCallback =
-                           [writeChanPkt _ch] ++ logParsedPacketStdout
-                       }
-
-writeChanPkt :: ToJSON t => Chan.Chan BS.ByteString -> ParsedPacketCallback t
-writeChanPkt ch =
-  ParseSuccessCallback (
-    \pkt -> liftIO $ Chan.writeChan ch (BSL.toStrict . encode $ pkt))
+                           , _mvParsedPacketCallback =
+                                 [writeChanJsonPkt _ch] ++ logParsedPacketStdout
+                           }
 
 -- TODO: This should move somewhere.
 createFileIfMissing :: FilePath -> IO ()
