@@ -73,6 +73,7 @@ main = do
   putStrLn "Welcome to Mapview for NBP4!"
   args <- getArgs
   rawChan <- Chan.newChan
+  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   if length args > 0 && head args == "TEST_MODE"
     then mainTest rawChan
     else mainProd rawChan
@@ -80,7 +81,6 @@ main = do
 mainProd :: Chan.Chan BS.ByteString -> IO ()
 mainProd rawChan = do
   createHistoryFileHierarchy
-  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   mapview (mvConfig rawChan)
 
 mainTest :: Chan.Chan BS.ByteString -> IO ()
@@ -90,5 +90,4 @@ mainTest rawChan = do
   putStrLn "No data is being persisted!"
   putStrLn "!!! WARNING WARNING WARNING !!!"
   putStrLn ""
-  _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   mapview (mvConfigTestMode <*> mvConfig $ rawChan)
