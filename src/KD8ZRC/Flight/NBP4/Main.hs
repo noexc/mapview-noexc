@@ -72,24 +72,23 @@ main :: IO ()
 main = do
   putStrLn "Welcome to Mapview for NBP4!"
   args <- getArgs
-  if length args > 0 && head args == "TEST_MODE"
-    then mainTest
-    else mainProd
-
-mainProd :: IO ()
-mainProd = do
-  createHistoryFileHierarchy
   rawChan <- Chan.newChan
+  if length args > 0 && head args == "TEST_MODE"
+    then mainTest rawChan
+    else mainProd rawChan
+
+mainProd :: Chan.Chan BS.ByteString -> IO ()
+mainProd rawChan = do
+  createHistoryFileHierarchy
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   mapview (mvConfig rawChan)
 
-mainTest :: IO ()
-mainTest = do
+mainTest :: Chan.Chan BS.ByteString -> IO ()
+mainTest rawChan = do
   putStrLn "!!! WARNING WARNING WARNING !!!"
   putStrLn "Mapview is currently running in TEST MODE"
   putStrLn "No data is being persisted!"
   putStrLn "!!! WARNING WARNING WARNING !!!"
   putStrLn ""
-  rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   mapview (mvConfigTestMode <*> mvConfig $ rawChan)
