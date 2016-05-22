@@ -7,7 +7,9 @@ module Main where
 
 import Control.Concurrent
 import qualified Control.Concurrent.Chan as Chan
+import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as BSL
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Environment (getArgs)
 
@@ -18,6 +20,7 @@ import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
 import KD8ZRC.Mapview.Utility.Concurrent
 import KD8ZRC.Mapview.Utility.Downlink
+import KD8ZRC.Mapview.Utility.GPSD
 import KD8ZRC.Mapview.Utility.Logging
 import KD8ZRC.Mapview.Utility.Websocket
 
@@ -68,12 +71,17 @@ createHistoryFileHierarchy = do
   createFileIfMissing cHist
   createFileIfMissing fHist
 
+tpvChaseGpsCallback :: Chan.Chan BS.ByteString -> GpsdTPVCallback
+tpvChaseGpsCallback ch =
+  GpsdTPVCallback (\tpv -> Chan.writeChan ch (BSL.toStrict . encode . tpvToMapviewJson $ tpv))
+
 main :: IO ()
 main = do
   putStrLn "Welcome to Mapview for NBP4!"
   args <- getArgs
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
+  _ <- forkIO $ initGpsd [tpvChaseGpsCallback rawChan]
   if length args > 0 && head args == "TEST_MODE"
     then mainTest rawChan
     else mainProd rawChan
