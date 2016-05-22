@@ -16,9 +16,9 @@ import System.Environment (getArgs)
 import KD8ZRC.Flight.NBP4.History
 import KD8ZRC.Flight.NBP4.Parser
 import KD8ZRC.Flight.NBP4.Types
+import KD8ZRC.Mapview.Encoding.JSON
 import KD8ZRC.Mapview.Execute
 import KD8ZRC.Mapview.Types
-import KD8ZRC.Mapview.Utility.Concurrent
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.GPSD
 import KD8ZRC.Mapview.Utility.Logging
