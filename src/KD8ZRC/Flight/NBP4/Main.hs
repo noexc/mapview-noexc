@@ -7,6 +7,7 @@ module Main where
 
 import Control.Concurrent
 import qualified Control.Concurrent.Chan as Chan
+import Control.Lens
 import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -18,7 +19,7 @@ import KD8ZRC.Flight.NBP4.Parser
 import KD8ZRC.Flight.NBP4.Types
 import KD8ZRC.Mapview.Encoding.JSON
 import KD8ZRC.Mapview.Execute
-import KD8ZRC.Mapview.Types
+import KD8ZRC.Mapview.Types hiding (parser)
 import KD8ZRC.Mapview.Utility.Downlink
 import KD8ZRC.Mapview.Utility.GPSD
 import KD8ZRC.Mapview.Utility.Logging
@@ -32,32 +33,37 @@ cHist = "/var/tmp/" ++ flightId ++ "/history-coord.json"
 fHist = "/var/tmp/" ++ flightId ++ "/history-full.json"
 rawLog = "/var/tmp/" ++ flightId ++ "/raw.log"
 
+stdoutConfig
+  :: Chan.Chan BS.ByteString
+  -> ModemStdoutConfiguration TelemetryLine
+stdoutConfig _ch = ModemStdoutConfiguration {
+    _command = "minimodem"
+  , _args = ["-r", "rtty", "-q", "-S", "700", "-M", "870"]
+  , _parsedCallbacks = ([ writeChanJsonPkt _ch
+                        , writePktHistory cHist saveCoordinateHistory
+                        , writePktHistory fHist saveFullHistory
+                        ] ++ logParsedPacketStdout)
+  , _parser = parser
+  , _onRaw = [ logRawPacketFile rawLog
+             , logRawPacketStdout
+             ]
+  }
+
 mvConfig :: Chan.Chan BS.ByteString -> MapviewConfig TelemetryLine
-mvConfig _ch = MapviewConfig {
-    _mvParser = parser
-  , _mvDownlinkSpawn =
-      --modemStdout "minimodem" ["-r", "-q", "-S", "700", "-M", "1050", "-5", "110"]
-      modemStdout "minimodem" ["-r", "rtty", "-q", "-S", "700", "-M", "870"]
-  , _mvPacketLineCallback =
-      [ logRawPacketFile rawLog
-      , logRawPacketStdout
-      ]
-  , _mvParsedPacketCallback =
-      [ writeChanJsonPkt _ch
-      , writePktHistory cHist saveCoordinateHistory
-      , writePktHistory fHist saveFullHistory
-      ] ++ logParsedPacketStdout
+mvConfig _ch =
+  MapviewConfig {
+    _telemetry =
+      modemStdout (stdoutConfig _ch)
   }
 
 -- | Strip all callbacks except those necessary for a PRE-LAUNCH test.
 mvConfigTestMode
   :: Chan.Chan BS.ByteString
-  -> MapviewConfig TelemetryLine
-  -> MapviewConfig TelemetryLine
-mvConfigTestMode _ch c = c { _mvPacketLineCallback = [logRawPacketStdout]
-                           , _mvParsedPacketCallback =
-                                 [writeChanJsonPkt _ch] ++ logParsedPacketStdout
-                           }
+  -> ModemStdoutConfiguration TelemetryLine
+  -> ModemStdoutConfiguration TelemetryLine
+mvConfigTestMode _ch c =
+  c & parsedCallbacks .~ ([writeChanJsonPkt _ch] ++ logParsedPacketStdout)
+    & onRaw .~ [logRawPacketStdout]
 
 -- TODO: This should move somewhere.
 createFileIfMissing :: FilePath -> IO ()
@@ -78,11 +84,11 @@ tpvChaseGpsCallback ch =
 main :: IO ()
 main = do
   putStrLn "Welcome to Mapview for NBP4!"
-  args <- getArgs
+  args' <- getArgs
   rawChan <- Chan.newChan
   _ <- forkIO $ initWebsocketServer rawChan "0.0.0.0" 9160 [sendWSHistory cHist]
   _ <- forkIO $ initGpsd [tpvChaseGpsCallback rawChan]
-  if length args > 0 && head args == "TEST_MODE"
+  if length args' > 0 && head args' == "TEST_MODE"
     then mainTest rawChan
     else mainProd rawChan
 
@@ -98,4 +104,5 @@ mainTest rawChan = do
   putStrLn "No data is being persisted!"
   putStrLn "!!! WARNING WARNING WARNING !!!"
   putStrLn ""
-  mapview (mvConfigTestMode <*> mvConfig $ rawChan)
+  mapview (mvConfig rawChan & telemetry .~
+           (modemStdout $ mvConfigTestMode <*> stdoutConfig $ rawChan))
